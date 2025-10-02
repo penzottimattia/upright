@@ -83,6 +83,8 @@ int main(int argc, char** argv) {
         robot_ptr.reset(new mm::RidgebackROSInterface(nh));
     } else if (r.q == 6) {
         robot_ptr.reset(new mm::UR10ROSInterface(nh));
+    } else if (r.q == 7) {
+        robot_ptr.reset(new mm::PandaROSInterface(nh));
     } else if (r.q == 9) {
         robot_ptr.reset(new mm::MobileManipulatorROSInterface(nh));
     } else {

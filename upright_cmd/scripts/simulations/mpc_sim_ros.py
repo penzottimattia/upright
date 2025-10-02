@@ -18,6 +18,7 @@ import upright_cmd as cmd
 
 from mobile_manipulation_central import (
     SimulatedUR10ROSInterface,
+    SimulatedPandaROSInterface,
     SimulatedMobileManipulatorROSInterface,
     SimulatedViconObjectInterface,
 )
@@ -100,7 +101,10 @@ def main():
     # setup the ROS interface
     rospy.init_node("mpc_sim_ros")
     if model.settings.robot_base_type == ctrl.bindings.RobotBaseType.Fixed:
-        ros_interface = SimulatedUR10ROSInterface()
+        if (ctrl_config["robot"]["dims"]["q"] == 7):
+            ros_interface = SimulatedPandaROSInterface()
+        else:
+            ros_interface = SimulatedUR10ROSInterface()
     elif model.settings.robot_base_type == ctrl.bindings.RobotBaseType.Omnidirectional:
         ros_interface = SimulatedMobileManipulatorROSInterface()
     else:

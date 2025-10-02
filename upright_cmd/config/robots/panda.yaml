@@ -1,0 +1,73 @@
+simulation:
+  robot:
+    # home and dims for Franka Panda (7 DOF)
+    home: [0, -0.4pi, 0, -2.0pi, 0, 1.0pi, 0.5pi]
+    dims:
+      q: 7  # generalized position
+      v: 7  # generalized velocity
+      x: 21 # state (q,v,aux)
+      u: 7  # input
+    noise:
+      measurement:
+        q_std_dev: 0
+        v_std_dev: 0
+      process:
+        v_std_dev: 0
+    joint_names:
+      - "panda_joint1"
+      - "panda_joint2"
+      - "panda_joint3"
+      - "panda_joint4"
+      - "panda_joint5"
+      - "panda_joint6"
+      - "panda_joint7"
+    # locked_joints:
+    #   x_to_world_joint: -1.0
+    #   y_to_x_joint: 1.0
+    #   base_to_y_joint: 0
+    tool_joint_name: "panda_joint8"
+    base_type: fixed
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/panda_capsules.urdf"
+      includes: ["$(find upright_assets)/thing/xacro/panda_capsules.urdf.xacro"]
+
+controller:
+  robot:
+    dims:
+      q: 7
+      v: 7
+      x: 21
+      u: 7
+    x0: [0, -0.4pi, 0, -2.0pi, 0, 1.0pi, 0.5pi, 0rep7, 0rep7]
+    base_pose: [0, 0, 0]
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/panda_capsules.urdf"
+      includes: ["$(find upright_assets)/thing/xacro/panda_capsules.urdf.xacro"]
+    tool_link_name: "panda_link8"
+    base_type: fixed
+
+  weights:
+    input:
+      scale: 0.001
+      diag: [1rep7]
+    state:
+      scale: 0.01
+      diag: [0rep7, 10rep7, 1rep7]
+    end_effector:
+      scale: 1
+      diag: [1, 1, 1, 0, 0, 0]
+
+  limits:
+    constraint_type: hard
+    input:
+      lower: [-80, -80, -80, -80, -80, -80, -80]
+      upper: [80, 80, 80, 80, 80, 80, 80]
+    state:
+      lower: [-2pi, -2pi, -2pi, -2pi, -2pi, -2pi, -2pi,
+              -2, -2, -3, -3, -3, -3, -3,
+              -10, -10, -10, -10, -10, -10, -10]
+      upper: [2pi, 2pi, 2pi, 2pi, 2pi, 2pi, 2pi,
+              2, 2, 3, 3, 3, 3, 3,
+              10, 10, 10, 10, 10, 10, 10]

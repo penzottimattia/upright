@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "/ws/devel/lib/python3/dist-packages",
+        "/ws/src/upright/upright_core/src",
+        "/ws/src/mobile_manipulation_central/src"
+    ]
+}

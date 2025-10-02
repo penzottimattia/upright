@@ -462,7 +462,7 @@ def balanced_object_setup(r_ew_w, Q_we, config, robot):
     ee_side_lengths = np.array(ee_config["side_lengths"])
     objects = {"ee": EEObject(ee_position, C_we, ee_side_lengths)}
 
-    mus = parsing.parse_mu_dict(arrangement["contacts"], apply_margin=False)
+    mus = parsing.parse_mu_dict(arrangement.get("contacts", []), apply_margin=False)
 
     for obj_instance_conf in arrangement["objects"]:
         obj_name = obj_instance_conf["name"]
@@ -521,7 +521,7 @@ def balanced_object_setup(r_ew_w, Q_we, config, robot):
         boxes = {name: obj.box for name, obj in objects.items()}
 
         contact_points = []
-        for contact in arrangement["contacts"]:
+        for contact in arrangement.get("contacts", []):
             name1 = contact["first"]
             name2 = contact["second"]
             points, _ = polyhedron.axis_aligned_contact(
@@ -533,9 +533,10 @@ def balanced_object_setup(r_ew_w, Q_we, config, robot):
                 )
             contact_points.append(points)
 
-        contact_points = np.vstack(contact_points)
-        colors = [[1, 1, 1] for _ in contact_points]
-        pyb.addUserDebugPoints([v for v in contact_points], colors, pointSize=10)
+        if contact_points:
+            contact_points = np.vstack(contact_points)
+            colors = [[1, 1, 1] for _ in contact_points]
+            pyb.addUserDebugPoints([v for v in contact_points], colors, pointSize=10)
 
     # get rid of "fake" EE object before returning
     objects.pop("ee")
