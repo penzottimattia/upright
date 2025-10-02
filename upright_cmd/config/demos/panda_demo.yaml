@@ -16,13 +16,50 @@ logging:
   log_dir: /media/adam/Data/PhD/Data/upright/bounded
 
 simulation:
-  duration: 10.0
+  duration: 2.0
   arrangement: nothing
+
+  static_obstacles:
+    enabled: true
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/obstacles.urdf"
+      includes:
+        - "$(find upright_assets)/thing/urdf/spheres.urdf"
 
 controller:
 
   waypoints:
     -
       time: 0
-      position: [0.0, 0.0, 0.0]
+      position: [0.0, 1.0, 0.0]
       orientation: [0, 0, 0, 1]
+
+  obstacles:
+    enabled: true
+
+    # extra margin between objects
+    # Important: this needs to be > 0 for the resulting constraint to be
+    # differentiable
+    minimum_distance: 0.1
+    
+    collision_pairs:
+      - ["panda_link5_0", "sphere_1_0"]
+      - ["panda_link5_1", "sphere_1_0"]
+      - ["panda_link5_2", "sphere_1_0"]
+      - ["panda_link5_3", "sphere_1_0"]
+      - ["panda_link5_4", "sphere_1_0"]
+      - ["panda_link5_5", "sphere_1_0"]
+      - ["panda_link6_0", "sphere_1_0"]
+      - ["panda_link6_1", "sphere_1_0"]
+      - ["panda_link6_2", "sphere_1_0"]
+      - ["panda_link7_0", "sphere_1_0"]
+      - ["panda_link7_1", "sphere_1_0"]
+      - ["panda_link7_2", "sphere_1_0"]
+
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/obstacles.urdf"
+      includes:
+        - "$(find upright_assets)/thing/urdf/spheres.urdf"
+

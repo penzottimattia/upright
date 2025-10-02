@@ -1,7 +1,7 @@
 simulation:
   robot:
     # home and dims for Franka Panda (7 DOF)
-    home: [0, -0.4pi, 0, -2.0pi, 0, 1.0pi, 0.5pi]
+    home: [-0.647003173828125, 0.529197096824646, -0.2042931467294693, -1.1539582014083862, 0.10314089804887772, 1.6733906269073486, 0]
     dims:
       q: 7  # generalized position
       v: 7  # generalized velocity
@@ -39,7 +39,7 @@ controller:
       v: 7
       x: 21
       u: 7
-    x0: [0, -0.4pi, 0, -2.0pi, 0, 1.0pi, 0.5pi, 0rep7, 0rep7]
+    x0: [-0.647003173828125, 0.529197096824646, -0.2042931467294693, -1.1539582014083862, 0.10314089804887772, 1.6733906269073486, 0, 0rep7, 0rep7]
     base_pose: [0, 0, 0]
     urdf:
       package: "upright_assets"
