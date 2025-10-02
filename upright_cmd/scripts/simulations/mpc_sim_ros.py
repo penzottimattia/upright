@@ -206,6 +206,8 @@ def main():
     if env.video_manager.save:
         print(f"Saved video to {env.video_manager.path}")
 
+    return
+
     # visualize data
     DataPlotter.from_logger(logger).plot_all(show=False)
 
