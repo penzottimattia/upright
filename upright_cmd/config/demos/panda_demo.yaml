@@ -12,11 +12,11 @@ include:
     path: config/robots/panda.yaml
 
 logging:
-  timestep: 0.010
-  log_dir: /media/adam/Data/PhD/Data/upright/bounded
+  timestep: 1.0
+  log_dir: /root/.logs
 
 simulation:
-  duration: 2.0
+  duration: 5.0
   arrangement: nothing
 
   static_obstacles:
@@ -25,7 +25,7 @@ simulation:
       package: "upright_assets"
       path: "thing/urdf/obstacles.urdf"
       includes:
-        - "$(find upright_assets)/thing/urdf/spheres.urdf"
+        - "$(find upright_assets)/thing/xacro/obstacles/spheres.urdf.xacro"
 
 controller:
 
@@ -41,7 +41,7 @@ controller:
     # extra margin between objects
     # Important: this needs to be > 0 for the resulting constraint to be
     # differentiable
-    minimum_distance: 0.1
+    minimum_distance: 0.02
     
     collision_pairs:
       - ["panda_link5_0", "sphere_1_0"]
@@ -57,9 +57,34 @@ controller:
       - ["panda_link7_1", "sphere_1_0"]
       - ["panda_link7_2", "sphere_1_0"]
 
+      # - ["panda_link5_0", "sphere_2_0"]
+      # - ["panda_link5_1", "sphere_2_0"]
+      # - ["panda_link5_2", "sphere_2_0"]
+      # - ["panda_link5_3", "sphere_2_0"]
+      # - ["panda_link5_4", "sphere_2_0"]
+      # - ["panda_link5_5", "sphere_2_0"]
+      # - ["panda_link6_0", "sphere_2_0"]
+      # - ["panda_link6_1", "sphere_2_0"]
+      # - ["panda_link6_2", "sphere_2_0"]
+      # - ["panda_link7_0", "sphere_2_0"]
+      # - ["panda_link7_1", "sphere_2_0"]
+      # - ["panda_link7_2", "sphere_2_0"]
+      
+      # - ["panda_link5_0", "sphere_3_0"]
+      # - ["panda_link5_1", "sphere_3_0"]
+      # - ["panda_link5_2", "sphere_3_0"]
+      # - ["panda_link5_3", "sphere_3_0"]
+      # - ["panda_link5_4", "sphere_3_0"]
+      # - ["panda_link5_5", "sphere_3_0"]
+      # - ["panda_link6_0", "sphere_3_0"]
+      # - ["panda_link6_1", "sphere_3_0"]
+      # - ["panda_link6_2", "sphere_3_0"]
+      # - ["panda_link7_0", "sphere_3_0"]
+      # - ["panda_link7_1", "sphere_3_0"]
+      # - ["panda_link7_2", "sphere_3_0"]
+
     urdf:
       package: "upright_assets"
       path: "thing/urdf/obstacles.urdf"
       includes:
-        - "$(find upright_assets)/thing/urdf/spheres.urdf"
-
+        - "$(find upright_assets)/thing/xacro/obstacles/spheres.urdf.xacro"

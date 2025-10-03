@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<robot name="spheres" xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:arg name="radius" default="0.1"/>
+    <link name="sphere_1">
+        <collision>
+        <origin rpy="0 0 0" xyz="0.5 0 0.75"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        </collision>
+        <visual>
+        <origin rpy="0 0 0" xyz="0.5 0 0.75"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        <material name="red"/>
+        </visual>
+    </link>
+    <link name="sphere_2">
+        <collision>
+        <origin rpy="0 0 0" xyz="0.75 0.25 0.75"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        </collision>
+        <visual>
+        <origin rpy="0 0 0" xyz="0.75 0.25 0.75"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        <material name="red"/>
+        </visual>
+    </link>
+    <link name="sphere_3">
+        <collision>
+        <origin rpy="0 0 0" xyz="0.25 -0.25 0.25"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        </collision>
+        <visual>
+        <origin rpy="0 0 0" xyz="0.25 -0.25 0.25"/>
+        <geometry>
+            <sphere radius="$(arg radius)"/>
+        </geometry>
+        <material name="red"/>
+        </visual>
+    </link>
+    <link name="world"/>
+    <joint name="fixed_joint_1" type="fixed">
+        <parent link="world"/>
+        <child link="sphere_1"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+    <joint name="fixed_joint_2" type="fixed">
+        <parent link="world"/>
+        <child link="sphere_2"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+    <joint name="fixed_joint_3" type="fixed">
+        <parent link="world"/>
+        <child link="sphere_3"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+</robot>
