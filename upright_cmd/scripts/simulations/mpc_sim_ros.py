@@ -7,6 +7,7 @@ import rospy
 import numpy as np
 from pyb_utils.frame import debug_frame_world
 from std_msgs.msg import Empty
+from std_msgs.msg import Float64MultiArray
 from ocs2_msgs.msg import mpc_observation
 import matplotlib.pyplot as plt
 
@@ -18,13 +19,39 @@ import upright_cmd as cmd
 
 from mobile_manipulation_central import (
     SimulatedUR10ROSInterface,
-    SimulatedPandaROSInterface,
     SimulatedMobileManipulatorROSInterface,
     SimulatedViconObjectInterface,
 )
 
 import IPython
 
+from mobile_manipulation_central.simulation_ros_interface import SimulatedRobotROSInterface
+
+class SimulatedPandaROSInterface(SimulatedRobotROSInterface):
+    """Simulated Panda interface."""
+
+    def __init__(self):
+        robot_name = "panda"
+        panda_joint_names = [
+            "panda_joint1",
+            "panda_joint2",
+            "panda_joint3",
+            "panda_joint4",
+            "panda_joint5",
+            "panda_joint6",
+            "panda_joint7",
+        ]
+        super().__init__(
+            nq=7, nv=7, robot_name=robot_name, joint_names=panda_joint_names
+        )
+
+        self.cmd_sub = rospy.Subscriber(
+            robot_name + "/cmd_vel", Float64MultiArray, self._cmd_cb
+        )
+
+    def _cmd_cb(self, msg):
+        self.cmd_vel = np.array(msg.data)
+        assert self.cmd_vel.shape == (self.nv,)
 
 class MPCObservationListener:
     """Listens to and records published MPC observations"""

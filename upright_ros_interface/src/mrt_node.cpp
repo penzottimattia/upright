@@ -18,6 +18,44 @@
 
 #include <iostream>
 
+#include <mobile_manipulation_central/robot_interfaces.h>
+namespace mm {
+
+    class PandaROSInterface : public RobotROSInterface {
+    public:
+        PandaROSInterface(ros::NodeHandle& nh) : RobotROSInterface(7, 7) {
+            joint_state_sub_ = nh.subscribe(
+                "panda/joint_states", 1, &PandaROSInterface::joint_state_cb, this);
+
+            cmd_pub_ =
+                nh.advertise<std_msgs::Float64MultiArray>("panda/cmd_vel", 1, true);
+        }
+
+        void publish_cmd_vel(const Eigen::VectorXd& cmd_vel,
+                            bool bodyframe = false) override {
+            if (cmd_vel.rows() != nv_) {
+                throw std::runtime_error("Panda given cmd_vel of wrong shape.");
+            }
+
+            std_msgs::Float64MultiArray msg;
+            msg.data = std::vector<double>(cmd_vel.data(),
+                                        cmd_vel.data() + cmd_vel.rows());
+            cmd_pub_.publish(msg);
+        }
+
+    private:
+        void joint_state_cb(const sensor_msgs::JointState& msg) {
+            for (int i = 0; i < msg.name.size(); ++i) {
+                size_t j = i;  // assume ordering is correct
+                q_[j] = msg.position[i];
+                v_[j] = msg.velocity[i];
+            }
+            joint_states_received_ = true;
+        }
+    };
+
+}  // namespace mm
+
 using namespace upright;
 
 enum class ProjectileState {
