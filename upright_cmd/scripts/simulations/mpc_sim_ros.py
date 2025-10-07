@@ -82,7 +82,8 @@ def main():
     # start the simulation
     timestamp = datetime.datetime.now()
     env = sim.simulation.UprightSimulation(
-        config=sim_config, timestamp=timestamp, video_name=cli_args.video
+        config=sim_config, timestamp=timestamp, video_name=cli_args.video,
+        gui=rospy.get_param("~gui", False)
     )
 
     # settle sim to make sure everything is touching comfortably
