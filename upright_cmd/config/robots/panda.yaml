@@ -57,7 +57,7 @@ controller:
       diag: [0rep7, 10rep7, 1rep7]
     end_effector:
       scale: 1
-      diag: [1, 1, 1, 0, 0, 0]
+      diag: [1, 1, 1, 1, 1, 1]
 
   limits:
     constraint_type: hard
