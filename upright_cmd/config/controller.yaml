@@ -29,7 +29,7 @@ estimation:
 
 # low-level reference tracking
 tracking:
-  rate: 125  # Hz
+  rate: 100  # Hz
   min_policy_update_time: 0.01  # seconds
 
   # state feedback gains

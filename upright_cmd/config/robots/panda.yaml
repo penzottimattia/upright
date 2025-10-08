@@ -53,10 +53,10 @@ controller:
       scale: 0.001
       diag: [1rep7]
     state:
-      scale: 0.01
+      scale: 0.1
       diag: [0rep7, 10rep7, 1rep7]
     end_effector:
-      scale: 0.1
+      scale: 1
       diag: [1, 1, 1, 1, 1, 1]
 
   limits:
