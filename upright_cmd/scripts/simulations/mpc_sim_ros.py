@@ -80,6 +80,7 @@ def main():
     log_config = config["logging"]
 
     # start the simulation
+    rospy.init_node("mpc_sim_ros")
     timestamp = datetime.datetime.now()
     env = sim.simulation.UprightSimulation(
         config=sim_config, timestamp=timestamp, video_name=cli_args.video,
@@ -127,7 +128,6 @@ def main():
         debug_frame_world(0.2, list(r_ew_w_d), orientation=Q_we_d, line_width=3)
 
     # setup the ROS interface
-    rospy.init_node("mpc_sim_ros")
     if model.settings.robot_base_type == ctrl.bindings.RobotBaseType.Fixed:
         if (ctrl_config["robot"]["dims"]["q"] == 7):
             ros_interface = SimulatedPandaROSInterface()
