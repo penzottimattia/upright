@@ -48,13 +48,13 @@ controller:
       - ["panda_link6_0", "sphere_1_0"]
       - ["panda_link7_0", "sphere_1_0"]
 
-      - ["panda_link4_0", "sphere_2_0"]
-      - ["panda_link6_0", "sphere_2_0"]
-      - ["panda_link7_0", "sphere_2_0"]
+      # - ["panda_link4_0", "sphere_2_0"]
+      # - ["panda_link6_0", "sphere_2_0"]
+      # - ["panda_link7_0", "sphere_2_0"]
 
-      - ["panda_link4_0", "sphere_3_0"]
-      - ["panda_link6_0", "sphere_3_0"]
-      - ["panda_link7_0", "sphere_3_0"]
+      # - ["panda_link4_0", "sphere_3_0"]
+      # - ["panda_link6_0", "sphere_3_0"]
+      # - ["panda_link7_0", "sphere_3_0"]
 
     # Use with panda_capsules.urdf.xacro
     # collision_pairs:
