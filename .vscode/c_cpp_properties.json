@@ -4,10 +4,10 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/ros/noetic/include",
+                "/opt/ros/noetic/include/**",
                 "/usr/include",
-                "/ws/src/**",
-                "/ws/devel/include",
+                "${HOME}/ws/src/**",
+                "${HOME}/ws/devel/**",
                 "/usr/include/eigen3",
                 "/usr/local/lib/python3.8/dist-packages/pybind11/include",
                 "/usr/include/python3.8/"
