@@ -53,8 +53,8 @@ tracking:
 # sequential quadratic programming
 sqp:
   dt: 0.1
-  sqp_iteration: 1
-  init_sqp_iteration: 1
+  sqp_iteration: 2
+  init_sqp_iteration: 2
   delta_tol: 1e-3
   cost_tol: 1e-4
   use_feedback_policy: true
@@ -66,7 +66,7 @@ sqp:
     iter_max: 30
     warm_start: 1  # 0 = no warm start, 1 = primal warm start, 2 = primal and dual warm start
     slacks:
-      enabled: false
+      enabled: true
       input_box: true  # slacks on input box constraints
       state_box: true  # slacks on state box constraints
       poly_ineq: true  # slacks on general polytopic inequality constraints

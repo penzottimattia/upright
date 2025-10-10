@@ -195,7 +195,8 @@ int main(int argc, char** argv) {
 
     // Estimation
     mm::kf::GaussianEstimate estimate;
-    estimate.x = x;
+    // Initialize KF with the robot substate only (exclude obstacle tail)
+    estimate.x = x.head(r.x);
     estimate.P =
         settings.estimation.robot_init_variance * MatXd::Identity(r.x, r.x);
 
@@ -266,9 +267,8 @@ int main(int argc, char** argv) {
         B << dt * dt * dt * I / 6, 0.5 * dt * dt * I, dt * I;
         MatXd Q = B * Q0 * B.transpose();
 
-        // Estimate current state from joint position and jerk input using
-        // Kalman filter
-        // VecXd u_robot = u.head(r.u);
+        // Estimate current robot substate from joint position and jerk input
+        // using Kalman filter (KF is over robot state only)
         estimate = mm::kf::predict(estimate, A, Q, B * u_cmd);
 
         // TODO: we should actually only do this if/when measurements are

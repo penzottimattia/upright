@@ -15,6 +15,7 @@ simulation:
         # True if the object's trajectory should be tracked, false if it should
         # just be allowed to evolve subject to gravity
         # Note that acceleration is still required either way
+        autostart: false
         controlled: true
         collides: false
         radius: 0.25
@@ -23,10 +24,14 @@ simulation:
           -
             time: 0
             position: [1.5, 1, 0.25]
-            velocity: [0, 0, 0]
+            velocity: [0, 0.3, 0]
             acceleration: [0, 0, 0]
 
 controller:
+  # sqp:
+  #   hpipm:
+  #     slacks:
+  #       enabled: true  # soften inequalities to avoid immediate infeasibility at t=0
   obstacles:
     dynamic:
       -
@@ -36,5 +41,7 @@ controller:
           -
             time: 0
             position: [1.5, 1, 0.25]
-            velocity: [0, 0, 0]
+            velocity: [0, 0.3, 0]
             acceleration: [0, 0, 0]
+    # # For this scenario, keep a small but positive margin for differentiability
+    # minimum_distance: 0.02

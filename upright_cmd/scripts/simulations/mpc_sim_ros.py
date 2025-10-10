@@ -90,6 +90,20 @@ def main():
     # settle sim to make sure everything is touching comfortably
     env.settle(5.0)
 
+    # Optionally autostart dynamic obstacles before receiving first command
+    dyn_cfg = sim_config.get("dynamic_obstacles", {})
+    # Determine if we should autostart: either top-level flag or any obstacle-level flag
+    autostart_any = dyn_cfg.get("autostart", False) or any(
+        o.get("autostart", False) for o in dyn_cfg.get("obstacles", [])
+    )
+    if dyn_cfg.get("enabled", False) and autostart_any:
+        env.launch_dynamic_obstacles(t0=0.0)
+        # Mark and log dynamic obstacles so they are easy to spot in the GUI
+        for i, obs in enumerate(env.dynamic_obstacles):
+            r, v, a = obs.joint_state()
+            debug_frame_world(0.25, list(r), orientation=[0, 0, 0, 1], line_width=4)
+            print(f"[autostart] dynamic obstacle {i}: r0={r}, v0={v}, a0={a}")
+
     # initial time, state, input
     t = 0.0
     q, v = env.robot.joint_states()
@@ -170,8 +184,14 @@ def main():
     print("Command received. Executing...")
     t0 = t
 
-    # add dynamic obstacles and start them moving
-    env.launch_dynamic_obstacles(t0=t0)
+    # add dynamic obstacles and start them moving (if not autostarted)
+    if not (dyn_cfg.get("enabled", False) and autostart_any):
+        env.launch_dynamic_obstacles(t0=t0)
+        # Mark and log dynamic obstacles so they are easy to spot in the GUI
+        for i, obs in enumerate(env.dynamic_obstacles):
+            r, v, a = obs.joint_state()
+            debug_frame_world(0.25, list(r), orientation=[0, 0, 0, 1], line_width=4)
+            print(f"[launched] dynamic obstacle {i}: r0={r}, v0={v}, a0={a}")
 
     # simulation loop
     while not rospy.is_shutdown() and t - t0 <= env.duration:

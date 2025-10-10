@@ -105,10 +105,26 @@ def build_robot_interfaces(settings):
         tool_link_name=settings.end_effector_link_name,
     )
 
-    # build geometry
+    # build geometry for the base robot
     geom = UprightRobotGeometry.from_robot_and_urdf(robot, settings.robot_urdf_path)
 
-    # add a ground plane
+    # IMPORTANT: Append dynamic obstacles BEFORE adding any external geometry
+    # (static obstacles, ground). This prevents remapping geometry across model
+    # appends, which can cause Pinocchio frame mapping assertions when dynamic
+    # obstacles are enabled.
+    if len(settings.obstacle_settings.dynamic_obstacles) > 0:
+        obs_model, obs_geom_model = _build_dynamic_obstacle_model(
+            settings.obstacle_settings.dynamic_obstacles
+        )
+        robot, geom = _append_model(robot, geom, obs_model, obs_geom_model)
+
+    # add static obstacles (external geometry)
+    if len(settings.obstacle_settings.obstacle_urdf_path) > 0:
+        geom.add_geometry_objects_from_urdf(
+            settings.obstacle_settings.obstacle_urdf_path
+        )
+
+    # add a ground plane last, relative to the final (possibly-augmented) model
     ground_placement = pinocchio.SE3.Identity()
     ground_shape = fcl.Halfspace(np.array([0, 0, 1]), 0)
     ground_geom_obj = pinocchio.GeometryObject(
@@ -119,19 +135,6 @@ def build_robot_interfaces(settings):
     # we don't add as a visual object because it is not supported by the
     # meshcat viewer
     geom.add_collision_objects([ground_geom_obj])
-
-    # add dynamic obstacles
-    if len(settings.obstacle_settings.dynamic_obstacles) > 0:
-        obs_model, obs_geom_model = _build_dynamic_obstacle_model(
-            settings.obstacle_settings.dynamic_obstacles
-        )
-        robot, geom = _append_model(robot, geom, obs_model, obs_geom_model)
-
-    # add static obstacles
-    if len(settings.obstacle_settings.obstacle_urdf_path) > 0:
-        geom.add_geometry_objects_from_urdf(
-            settings.obstacle_settings.obstacle_urdf_path
-        )
 
     # add link pairs to check for collision
     pairs = [pair for pair in settings.obstacle_settings.collision_link_pairs]
