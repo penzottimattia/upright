@@ -320,6 +320,11 @@ int main(int argc, char** argv) {
             } else {
                 x.tail(9) = obstacle->modes[1].state();
             }
+        } else if (using_stationary && obstacle->modes.size() == 1) {
+            // integrate obstacle state forward in time
+            VecXd x_obs = obstacle->modes[0].state();
+            x_obs.head(3) = x_obs.head(3) + (t - t0) * x_obs.segment(3, 3);
+            x.tail(9) = x_obs;
         }
 
         // Compute optimal state and input using current policy
