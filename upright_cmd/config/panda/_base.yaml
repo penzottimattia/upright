@@ -1,4 +1,22 @@
+include:
+  -
+    key: simulation
+    package: upright_cmd
+    path: config/simulation.yaml
+  -
+    key: controller
+    package: upright_cmd
+    path: config/controller.yaml
+  -
+    package: upright_cmd
+    path: config/robots/ur10.yaml #inherits majority of robot config from ur10
+
+logging:
+  timestep: 1.0
+  log_dir: /root/.logs
+
 simulation:
+
   robot:
     # home and dims for Franka Panda (7 DOF)
     home: [-0.647003173828125, 0.529197096824646, -0.2042931467294693, -1.1539582014083862, 0.10314089804887772, 1.6733906269073486, 0]
@@ -7,12 +25,6 @@ simulation:
       v: 7  # generalized velocity
       x: 21 # state (q,v,aux)
       u: 7  # input
-    noise:
-      measurement:
-        q_std_dev: 0
-        v_std_dev: 0
-      process:
-        v_std_dev: 0
     joint_names:
       - "panda_joint1"
       - "panda_joint2"
@@ -21,18 +33,18 @@ simulation:
       - "panda_joint5"
       - "panda_joint6"
       - "panda_joint7"
-    # locked_joints:
-    #   x_to_world_joint: -1.0
-    #   y_to_x_joint: 1.0
-    #   base_to_y_joint: 0
     tool_joint_name: "panda_joint8"
     base_type: fixed
     urdf:
       package: "upright_assets"
       path: "thing/urdf/panda.urdf"
-      includes: ["$(find upright_assets)/thing/xacro/panda_spheres.urdf.xacro"]
+      includes: ["$(find upright_cmd)/config/panda/assets/panda_spheres.urdf.xacro"]
+
+  duration: 10.0
+  arrangement: nothing
 
 controller:
+
   robot:
     dims:
       q: 7
@@ -44,30 +56,24 @@ controller:
     urdf:
       package: "upright_assets"
       path: "thing/urdf/panda.urdf"
-      includes: ["$(find upright_assets)/thing/xacro/panda_spheres.urdf.xacro"]
+      includes: ["$(find upright_cmd)/config/panda/assets/panda_spheres.urdf.xacro"]
     tool_link_name: "panda_link8"
     base_type: fixed
 
-  weights:
-    input:
-      scale: 0.001
-      diag: [1rep7]
-    state:
-      scale: 0.1
-      diag: [0rep7, 10rep7, 1rep7]
-    end_effector:
-      scale: 10
-      diag: [1, 1, 1, 1, 1, 1]
+  waypoints:
+    -
+      time: 0
+      position: [0.0, 1.0, 0.0]
+      orientation: [0, 0, 0, 1]
 
-  limits:
-    constraint_type: hard
-    input:
-      lower: [-80, -80, -80, -80, -80, -80, -80]
-      upper: [80, 80, 80, 80, 80, 80, 80]
-    state:
-      lower: [-2pi, -2pi, -2pi, -2pi, -2pi, -2pi, -2pi,
-              -2, -2, -3, -3, -3, -3, -3,
-              -10, -10, -10, -10, -10, -10, -10]
-      upper: [2pi, 2pi, 2pi, 2pi, 2pi, 2pi, 2pi,
-              2, 2, 3, 3, 3, 3, 3,
-              10, 10, 10, 10, 10, 10, 10]
+  tracking:
+    use_projectile: false
+
+  obstacles:
+    enabled: false
+
+    # extra margin between objects
+    # Important: this needs to be > 0 for the resulting constraint to be
+    # differentiable
+    minimum_distance: 0.02
+  
