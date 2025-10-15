@@ -7,9 +7,6 @@ include:
     key: controller
     package: upright_cmd
     path: config/controller.yaml
-  -
-    package: upright_cmd
-    path: config/robots/ur10.yaml #inherits majority of robot config from ur10
 
 logging:
   timestep: 1.0
@@ -25,6 +22,12 @@ simulation:
       v: 7  # generalized velocity
       x: 21 # state (q,v,aux)
       u: 7  # input
+    noise:
+      measurement:
+        q_std_dev: 0
+        v_std_dev: 0
+      process:
+        v_std_dev: 0
     joint_names:
       - "panda_joint1"
       - "panda_joint2"
@@ -60,6 +63,32 @@ controller:
     tool_link_name: "panda_link8"
     base_type: fixed
 
+  # weights on state, input, and end effector pose
+  weights:
+    input:
+      scale: 0.001 # same as ur10
+      diag: [1rep7]
+    state: 
+      scale: 0.01 # same as ur10
+      diag: [0rep7, 10rep7, 1rep7]
+    end_effector:
+      scale: 0.1 # it was 1 in ur10, slow down a bit
+      diag: [1, 1, 1, 1, 1, 1]
+
+  # state and input limits (from franka URDF), assume acceleration limits of 10 rad/s^2 (as in ur10)
+  limits:
+    constraint_type: hard
+    input:
+      lower: [-87, -87, -87, -87, -12, -12, -12]
+      upper: [87, 87, 87, 87, 12, 12, 12]
+    state:
+      lower: [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973,
+              -2.1753, -2.175, -2.175, -2.175, -2.61, -2.61, -2.61,
+              -10, -10, -10, -10, -10, -10, -10] 
+      upper: [2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973,
+              2.1753, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61,
+              10, 10, 10, 10, 10, 10, 10]
+
   waypoints:
     -
       time: 0
@@ -68,6 +97,20 @@ controller:
 
   tracking:
     use_projectile: false
+    rate: 100 # Hz
+
+  mpc:
+    time_horizon: 4.0 # was 2.0 in ur10, make it longer for smoother motion and dynamic obstacles
+    debug_print: false
+    cold_start: false
+  
+  sqp:
+    hpipm:
+      slacks:
+        enabled: true # enable soft constraints to improve convergence
+    print_solver_status: false
+    print_solver_statistics: false
+    print_line_search: false
 
   obstacles:
     enabled: false

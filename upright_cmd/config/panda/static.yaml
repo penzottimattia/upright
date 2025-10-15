@@ -7,7 +7,7 @@ simulation:
   static_obstacles:
     enabled: true
     urdf: &obstacles_urdf
-      package: "upright_cmd"
+      package: "upright_assets"
       path: "thing/urdf/obstacles.urdf"
       includes:
         - "$(find upright_cmd)/config/panda/assets/obstacles.urdf.xacro"
@@ -18,13 +18,13 @@ controller:
     urdf: *obstacles_urdf
     minimum_distance: 0.02
     collision_pairs:
-      - ["panda_link4_0", "sphere_1_0"]
-      - ["panda_link6_0", "sphere_1_0"]
-      - ["panda_link7_0", "sphere_1_0"]
-      - ["panda_link4_0", "sphere_2_0"]
-      - ["panda_link6_0", "sphere_2_0"]
-      - ["panda_link7_0", "sphere_2_0"]
-      - ["panda_link4_0", "sphere_3_0"]
-      - ["panda_link6_0", "sphere_3_0"]
-      - ["panda_link7_0", "sphere_3_0"]
+      - ["panda_link4_0", "static_1_0"]
+      - ["panda_link6_0", "static_1_0"]
+      - ["panda_link7_0", "static_1_0"]
+      - ["panda_link4_0", "static_2_0"]
+      - ["panda_link6_0", "static_2_0"]
+      - ["panda_link7_0", "static_2_0"]
+      - ["panda_link4_0", "static_3_0"]
+      - ["panda_link6_0", "static_3_0"]
+      - ["panda_link7_0", "static_3_0"]
       

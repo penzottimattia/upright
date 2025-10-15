@@ -10,7 +10,7 @@ solver_method: SQP  # only SQP is supported now
 
 # model predictive controller
 mpc:
-  time_horizon: 4.0
+  time_horizon: 2.0
   debug_print: true
   cold_start: false
 
@@ -29,7 +29,7 @@ estimation:
 
 # low-level reference tracking
 tracking:
-  rate: 100  # Hz
+  rate: 125  # Hz
   min_policy_update_time: 0.01  # seconds
 
   # state feedback gains
@@ -53,8 +53,8 @@ tracking:
 # sequential quadratic programming
 sqp:
   dt: 0.1
-  sqp_iteration: 2
-  init_sqp_iteration: 2
+  sqp_iteration: 1
+  init_sqp_iteration: 1
   delta_tol: 1e-3
   cost_tol: 1e-4
   use_feedback_policy: true
@@ -66,7 +66,7 @@ sqp:
     iter_max: 30
     warm_start: 1  # 0 = no warm start, 1 = primal warm start, 2 = primal and dual warm start
     slacks:
-      enabled: true
+      enabled: false
       input_box: true  # slacks on input box constraints
       state_box: true  # slacks on state box constraints
       poly_ineq: true  # slacks on general polytopic inequality constraints
@@ -239,3 +239,4 @@ objects:
     side_lengths: [0.15, 0.15, 0.275]
     com_offset: [0, 0, 0]
     mass: 0.11
+    
