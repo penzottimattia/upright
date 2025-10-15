@@ -1,0 +1,41 @@
+include:
+  -
+    package: upright_cmd
+    path: config/panda/_base.yaml
+
+simulation:
+
+  dynamic_obstacles:
+    enabled: true
+    obstacles:
+      -
+        # True if the object's trajectory should be tracked, false if it should
+        # just be allowed to evolve subject to gravity
+        # Note that acceleration is still required either way
+        autostart: false
+        controlled: true
+        collides: false
+        radius: &radius 0.1
+        relative: false
+        modes: &dynamic_obstacle_modes
+          - time: 0
+            position: [0.5, 0.5, 0.5]
+            velocity: [0, -0.1, 0]
+            acceleration: [0, 0, 0]
+
+controller:
+
+  obstacles:
+    enabled: true
+
+    dynamic:
+      -
+        name: dynamic_1
+        radius: *radius
+        modes: *dynamic_obstacle_modes
+
+    collision_pairs:
+      - ["panda_link4_0", "dynamic_1"]
+      - ["panda_link6_0", "dynamic_1"]
+      - ["panda_link7_0", "dynamic_1"]
+  

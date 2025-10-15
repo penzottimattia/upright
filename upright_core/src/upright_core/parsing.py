@@ -353,7 +353,7 @@ def parse_control_objects(ctrl_conf):
     arrangement_name = ctrl_conf["balancing"]["arrangement"]
     arrangement = ctrl_conf["arrangements"][arrangement_name]
     obj_type_confs = ctrl_conf["objects"]
-    contact_conf = arrangement["contacts"]
+    contact_conf = arrangement.get("contacts", [])
 
     # NOTE: for backward compatibility with previous config format version
     for obj_type_conf in obj_type_confs.values():

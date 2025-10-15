@@ -18,6 +18,44 @@
 
 #include <iostream>
 
+#include <mobile_manipulation_central/robot_interfaces.h>
+namespace mm {
+
+    class PandaROSInterface : public RobotROSInterface {
+    public:
+        PandaROSInterface(ros::NodeHandle& nh) : RobotROSInterface(7, 7) {
+            joint_state_sub_ = nh.subscribe(
+                "panda/joint_states", 1, &PandaROSInterface::joint_state_cb, this);
+
+            cmd_pub_ =
+                nh.advertise<std_msgs::Float64MultiArray>("panda/cmd_vel", 1, true);
+        }
+
+        void publish_cmd_vel(const Eigen::VectorXd& cmd_vel,
+                            bool bodyframe = false) override {
+            if (cmd_vel.rows() != nv_) {
+                throw std::runtime_error("Panda given cmd_vel of wrong shape.");
+            }
+
+            std_msgs::Float64MultiArray msg;
+            msg.data = std::vector<double>(cmd_vel.data(),
+                                        cmd_vel.data() + cmd_vel.rows());
+            cmd_pub_.publish(msg);
+        }
+
+    private:
+        void joint_state_cb(const sensor_msgs::JointState& msg) {
+            for (int i = 0; i < msg.name.size(); ++i) {
+                size_t j = i;  // assume ordering is correct
+                q_[j] = msg.position[i];
+                v_[j] = msg.velocity[i];
+            }
+            joint_states_received_ = true;
+        }
+    };
+
+}  // namespace mm
+
 using namespace upright;
 
 enum class ProjectileState {
@@ -83,6 +121,8 @@ int main(int argc, char** argv) {
         robot_ptr.reset(new mm::RidgebackROSInterface(nh));
     } else if (r.q == 6) {
         robot_ptr.reset(new mm::UR10ROSInterface(nh));
+    } else if (r.q == 7) {
+        robot_ptr.reset(new mm::PandaROSInterface(nh));
     } else if (r.q == 9) {
         robot_ptr.reset(new mm::MobileManipulatorROSInterface(nh));
     } else {
@@ -155,7 +195,8 @@ int main(int argc, char** argv) {
 
     // Estimation
     mm::kf::GaussianEstimate estimate;
-    estimate.x = x;
+    // Initialize KF with the robot substate only (exclude obstacle tail)
+    estimate.x = x.head(r.x);
     estimate.P =
         settings.estimation.robot_init_variance * MatXd::Identity(r.x, r.x);
 
@@ -226,9 +267,8 @@ int main(int argc, char** argv) {
         B << dt * dt * dt * I / 6, 0.5 * dt * dt * I, dt * I;
         MatXd Q = B * Q0 * B.transpose();
 
-        // Estimate current state from joint position and jerk input using
-        // Kalman filter
-        // VecXd u_robot = u.head(r.u);
+        // Estimate current robot substate from joint position and jerk input
+        // using Kalman filter (KF is over robot state only)
         estimate = mm::kf::predict(estimate, A, Q, B * u_cmd);
 
         // TODO: we should actually only do this if/when measurements are
@@ -280,6 +320,11 @@ int main(int argc, char** argv) {
             } else {
                 x.tail(9) = obstacle->modes[1].state();
             }
+        } else if (using_stationary && obstacle->modes.size() == 1) {
+            // integrate obstacle state forward in time
+            VecXd x_obs = obstacle->modes[0].state();
+            x_obs.head(3) = x_obs.head(3) + (t - t0) * x_obs.segment(3, 3);
+            x.tail(9) = x_obs;
         }
 
         // Compute optimal state and input using current policy

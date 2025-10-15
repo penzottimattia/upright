@@ -1,0 +1,122 @@
+include:
+  -
+    key: simulation
+    package: upright_cmd
+    path: config/simulation.yaml
+  -
+    key: controller
+    package: upright_cmd
+    path: config/controller.yaml
+
+logging:
+  timestep: 1.0
+  log_dir: /root/.logs
+
+simulation:
+
+  robot:
+    # home and dims for Franka Panda (7 DOF)
+    home: [-0.647003173828125, 0.529197096824646, -0.2042931467294693, -1.1539582014083862, 0.10314089804887772, 1.6733906269073486, 0]
+    dims:
+      q: 7  # generalized position
+      v: 7  # generalized velocity
+      x: 21 # state (q,v,aux)
+      u: 7  # input
+    noise:
+      measurement:
+        q_std_dev: 0
+        v_std_dev: 0
+      process:
+        v_std_dev: 0
+    joint_names:
+      - "panda_joint1"
+      - "panda_joint2"
+      - "panda_joint3"
+      - "panda_joint4"
+      - "panda_joint5"
+      - "panda_joint6"
+      - "panda_joint7"
+    tool_joint_name: "panda_joint8"
+    base_type: fixed
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/panda.urdf"
+      includes: ["$(find upright_cmd)/config/panda/assets/panda_spheres.urdf.xacro"]
+
+  duration: 10.0
+  arrangement: nothing
+
+controller:
+
+  robot:
+    dims:
+      q: 7
+      v: 7
+      x: 21
+      u: 7
+    x0: [-0.647003173828125, 0.529197096824646, -0.2042931467294693, -1.1539582014083862, 0.10314089804887772, 1.6733906269073486, 0, 0rep7, 0rep7]
+    base_pose: [0, 0, 0]
+    urdf:
+      package: "upright_assets"
+      path: "thing/urdf/panda.urdf"
+      includes: ["$(find upright_cmd)/config/panda/assets/panda_spheres.urdf.xacro"]
+    tool_link_name: "panda_link8"
+    base_type: fixed
+
+  # weights on state, input, and end effector pose
+  weights:
+    input:
+      scale: 0.001 # same as ur10
+      diag: [1rep7]
+    state: 
+      scale: 0.01 # same as ur10
+      diag: [0rep7, 10rep7, 1rep7]
+    end_effector:
+      scale: 0.1 # it was 1 in ur10, slow down a bit
+      diag: [1, 1, 1, 1, 1, 1]
+
+  # state and input limits (from franka URDF), assume acceleration limits of 10 rad/s^2 (as in ur10)
+  limits:
+    constraint_type: hard
+    input:
+      lower: [-87, -87, -87, -87, -12, -12, -12]
+      upper: [87, 87, 87, 87, 12, 12, 12]
+    state:
+      lower: [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973,
+              -2.1753, -2.175, -2.175, -2.175, -2.61, -2.61, -2.61,
+              -10, -10, -10, -10, -10, -10, -10] 
+      upper: [2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973,
+              2.1753, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61,
+              10, 10, 10, 10, 10, 10, 10]
+
+  waypoints:
+    -
+      time: 0
+      position: [0.0, 1.0, 0.0]
+      orientation: [0, 0, 0, 1]
+
+  tracking:
+    use_projectile: false
+    rate: 100 # Hz
+
+  mpc:
+    time_horizon: 4.0 # was 2.0 in ur10, make it longer for smoother motion and dynamic obstacles
+    debug_print: false
+    cold_start: false
+  
+  sqp:
+    hpipm:
+      slacks:
+        enabled: true # enable soft constraints to improve convergence
+    print_solver_status: false
+    print_solver_statistics: false
+    print_line_search: false
+
+  obstacles:
+    enabled: false
+
+    # extra margin between objects
+    # Important: this needs to be > 0 for the resulting constraint to be
+    # differentiable
+    minimum_distance: 0.02
+  

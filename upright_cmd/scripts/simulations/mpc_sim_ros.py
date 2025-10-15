@@ -7,6 +7,7 @@ import rospy
 import numpy as np
 from pyb_utils.frame import debug_frame_world
 from std_msgs.msg import Empty
+from std_msgs.msg import Float64MultiArray
 from ocs2_msgs.msg import mpc_observation
 import matplotlib.pyplot as plt
 
@@ -24,6 +25,33 @@ from mobile_manipulation_central import (
 
 import IPython
 
+from mobile_manipulation_central.simulation_ros_interface import SimulatedRobotROSInterface
+
+class SimulatedPandaROSInterface(SimulatedRobotROSInterface):
+    """Simulated Panda interface."""
+
+    def __init__(self):
+        robot_name = "panda"
+        panda_joint_names = [
+            "panda_joint1",
+            "panda_joint2",
+            "panda_joint3",
+            "panda_joint4",
+            "panda_joint5",
+            "panda_joint6",
+            "panda_joint7",
+        ]
+        super().__init__(
+            nq=7, nv=7, robot_name=robot_name, joint_names=panda_joint_names
+        )
+
+        self.cmd_sub = rospy.Subscriber(
+            robot_name + "/cmd_vel", Float64MultiArray, self._cmd_cb
+        )
+
+    def _cmd_cb(self, msg):
+        self.cmd_vel = np.array(msg.data)
+        assert self.cmd_vel.shape == (self.nv,)
 
 class MPCObservationListener:
     """Listens to and records published MPC observations"""
@@ -52,13 +80,29 @@ def main():
     log_config = config["logging"]
 
     # start the simulation
+    rospy.init_node("mpc_sim_ros")
     timestamp = datetime.datetime.now()
     env = sim.simulation.UprightSimulation(
-        config=sim_config, timestamp=timestamp, video_name=cli_args.video
+        config=sim_config, timestamp=timestamp, video_name=cli_args.video,
+        gui=rospy.get_param("~gui", False)
     )
 
     # settle sim to make sure everything is touching comfortably
     env.settle(5.0)
+
+    # Optionally autostart dynamic obstacles before receiving first command
+    dyn_cfg = sim_config.get("dynamic_obstacles", {})
+    # Determine if we should autostart: either top-level flag or any obstacle-level flag
+    autostart_any = dyn_cfg.get("autostart", False) or any(
+        o.get("autostart", False) for o in dyn_cfg.get("obstacles", [])
+    )
+    if dyn_cfg.get("enabled", False) and autostart_any:
+        env.launch_dynamic_obstacles(t0=0.0)
+        # Mark and log dynamic obstacles so they are easy to spot in the GUI
+        for i, obs in enumerate(env.dynamic_obstacles):
+            r, v, a = obs.joint_state()
+            debug_frame_world(0.25, list(r), orientation=[0, 0, 0, 1], line_width=4)
+            print(f"[autostart] dynamic obstacle {i}: r0={r}, v0={v}, a0={a}")
 
     # initial time, state, input
     t = 0.0
@@ -98,9 +142,11 @@ def main():
         debug_frame_world(0.2, list(r_ew_w_d), orientation=Q_we_d, line_width=3)
 
     # setup the ROS interface
-    rospy.init_node("mpc_sim_ros")
     if model.settings.robot_base_type == ctrl.bindings.RobotBaseType.Fixed:
-        ros_interface = SimulatedUR10ROSInterface()
+        if (ctrl_config["robot"]["dims"]["q"] == 7):
+            ros_interface = SimulatedPandaROSInterface()
+        else:
+            ros_interface = SimulatedUR10ROSInterface()
     elif model.settings.robot_base_type == ctrl.bindings.RobotBaseType.Omnidirectional:
         ros_interface = SimulatedMobileManipulatorROSInterface()
     else:
@@ -138,8 +184,14 @@ def main():
     print("Command received. Executing...")
     t0 = t
 
-    # add dynamic obstacles and start them moving
-    env.launch_dynamic_obstacles(t0=t0)
+    # add dynamic obstacles and start them moving (if not autostarted)
+    if not (dyn_cfg.get("enabled", False) and autostart_any):
+        env.launch_dynamic_obstacles(t0=t0)
+        # Mark and log dynamic obstacles so they are easy to spot in the GUI
+        for i, obs in enumerate(env.dynamic_obstacles):
+            r, v, a = obs.joint_state()
+            debug_frame_world(0.25, list(r), orientation=[0, 0, 0, 1], line_width=4)
+            print(f"[launched] dynamic obstacle {i}: r0={r}, v0={v}, a0={a}")
 
     # simulation loop
     while not rospy.is_shutdown() and t - t0 <= env.duration:
@@ -201,6 +253,8 @@ def main():
 
     if env.video_manager.save:
         print(f"Saved video to {env.video_manager.path}")
+
+    return
 
     # visualize data
     DataPlotter.from_logger(logger).plot_all(show=False)

@@ -173,8 +173,35 @@ ControllerInterface::ControllerInterface(const ControllerSettings& settings)
         ocs2::PinocchioGeometryInterface geom_interface(
             *pinocchio_interface_ptr);
 
-        // Add obstacle collision objects to the geometry model, so we can check
-        // them against the robot.
+        // IMPORTANT: Append dynamic obstacles to the robot model BEFORE adding any
+        // external geometry (static obstacles, ground). This avoids remapping
+        // geometry across model appends, which can trigger Pinocchio frame mapping
+        // assertions when dynamic obstacles are enabled.
+        if (settings_.obstacle_settings.dynamic_obstacles.size() > 0) {
+            ocs2::PinocchioInterface::Model dyn_obs_model, new_model;
+            pinocchio::GeometryModel dyn_obs_geom_model, new_geom_model;
+
+            std::tie(dyn_obs_model, dyn_obs_geom_model) =
+                build_dynamic_obstacle_model(
+                    settings_.obstacle_settings.dynamic_obstacles);
+
+            // Current robot model and geometry
+            const auto& base_model = pinocchio_interface_ptr->getModel();
+            auto& base_geom_model = geom_interface.getGeometryModel();
+
+            // Append dynamic obstacle kinematics and geometry
+            pinocchio::appendModel(
+                base_model, dyn_obs_model, base_geom_model, dyn_obs_geom_model, 0,
+                pinocchio::SE3::Identity(), new_model, new_geom_model);
+
+            // Replace interfaces with appended versions
+            pinocchio_interface_ptr.reset(
+                new ocs2::PinocchioInterface(new_model));
+            geom_interface = ocs2::PinocchioGeometryInterface(new_geom_model);
+        }
+
+        // Now add static obstacle collision objects to the geometry model, so we
+        // can check them against the (possibly-augmented) robot.
         std::string obs_urdf_path =
             settings_.obstacle_settings.obstacle_urdf_path;
         if (obs_urdf_path.size() > 0) {
@@ -184,28 +211,10 @@ ControllerInterface::ControllerInterface(const ControllerSettings& settings)
             geom_interface.addGeometryObjects(obs_geom_model);
         }
 
+        // Finally, add the ground plane relative to the final model
         const auto& model = pinocchio_interface_ptr->getModel();
         auto& geom_model = geom_interface.getGeometryModel();
         add_ground_plane(model, geom_model);
-
-        // Add dynamic obstacles.
-        if (settings_.obstacle_settings.dynamic_obstacles.size() > 0) {
-            ocs2::PinocchioInterface::Model dyn_obs_model, new_model;
-            pinocchio::GeometryModel dyn_obs_geom_model, new_geom_model;
-
-            std::tie(dyn_obs_model, dyn_obs_geom_model) =
-                build_dynamic_obstacle_model(
-                    settings_.obstacle_settings.dynamic_obstacles);
-
-            // Update models
-            pinocchio::appendModel(
-                model, dyn_obs_model, geom_model, dyn_obs_geom_model, 0,
-                pinocchio::SE3::Identity(), new_model, new_geom_model);
-
-            pinocchio_interface_ptr.reset(
-                new ocs2::PinocchioInterface(new_model));
-            geom_interface = ocs2::PinocchioGeometryInterface(new_geom_model);
-        }
 
         std::cout << *pinocchio_interface_ptr << std::endl;
 

@@ -81,18 +81,17 @@ class SystemPinocchioMapping final
     VecXs getPinocchioJointPosition(const VecXs& state) const override {
         VecXs q_pin(dims_.q());
 
-        // For now, we assume all obstacles go first in list of q, v
+        // Pinocchio model order: robot joints first, then appended obstacles
+        VecXs x_robot = state.head(dims_.robot.x);
+        q_pin.head(dims_.robot.q) =
+            robot_mapping_.getPinocchioJointPosition(x_robot);
+
         for (int i = 0; i < dims_.o; ++i) {
             VecXs x_obs = state.segment(dims_.robot.x + i * 9, 9);
-            q_pin.segment(i * 3, 3) =
+            q_pin.segment(dims_.robot.q + i * 3, 3) =
                 OBSTACLE_PINOCCHIO_MAPPING<Scalar>.getPinocchioJointPosition(
                     x_obs);
         }
-
-        // Then we add on the robot q
-        VecXs x_robot = state.head(dims_.robot.x);
-        q_pin.tail(dims_.robot.q) =
-            robot_mapping_.getPinocchioJointPosition(x_robot);
 
         return q_pin;
     }
@@ -102,18 +101,19 @@ class SystemPinocchioMapping final
         VecXs v_pin(dims_.v());
         VecXs u_obs = VecXs::Zero(3);  // Obstacles have no input
 
+        // Robot velocities first
+        VecXs x_robot = state.head(dims_.robot.x);
+        VecXs u_robot = input.head(dims_.robot.u);
+        v_pin.head(dims_.robot.v) =
+            robot_mapping_.getPinocchioJointVelocity(x_robot, u_robot);
+
+        // Then obstacle velocities
         for (int i = 0; i < dims_.o; ++i) {
             VecXs x_obs = state.segment(dims_.robot.x + i * 9, 9);
-            v_pin.segment(i * 3, 3) =
+            v_pin.segment(dims_.robot.v + i * 3, 3) =
                 OBSTACLE_PINOCCHIO_MAPPING<Scalar>.getPinocchioJointVelocity(
                     x_obs, u_obs);
         }
-
-        // Then we add on the robot v
-        VecXs x_robot = state.head(dims_.robot.x);
-        VecXs u_robot = input.head(dims_.robot.u);
-        v_pin.tail(dims_.robot.v) =
-            robot_mapping_.getPinocchioJointVelocity(x_robot, u_robot);
 
         return v_pin;
     }
@@ -123,18 +123,19 @@ class SystemPinocchioMapping final
         VecXs a_pin(dims_.v());
         VecXs u_obs = VecXs::Zero(3);  // Obstacles have no input
 
+        // Robot accelerations first
+        VecXs x_robot = state.head(dims_.robot.x);
+        VecXs u_robot = input.head(dims_.robot.u);
+        a_pin.head(dims_.robot.v) =
+            robot_mapping_.getPinocchioJointAcceleration(x_robot, u_robot);
+
+        // Then obstacle accelerations
         for (int i = 0; i < dims_.o; ++i) {
             VecXs x_obs = state.segment(dims_.robot.x + i * 9, 9);
-            a_pin.segment(i * 3, 3) =
+            a_pin.segment(dims_.robot.v + i * 3, 3) =
                 OBSTACLE_PINOCCHIO_MAPPING<Scalar>.getPinocchioJointAcceleration(
                     x_obs, u_obs);
         }
-
-        // Then we add on the robot a
-        VecXs x_robot = state.head(dims_.robot.x);
-        VecXs u_robot = input.head(dims_.robot.u);
-        a_pin.tail(dims_.robot.v) =
-            robot_mapping_.getPinocchioJointAcceleration(x_robot, u_robot);
 
         return a_pin;
     }
@@ -150,10 +151,22 @@ class SystemPinocchioMapping final
         MatXs dfdx(output_dim, dims_.x());
         MatXs dfdu(output_dim, dims_.u());
 
+        // Robot contribution: robot columns are at the beginning
+        VecXs x_robot = state.head(dims_.robot.x);
+        MatXs Jq_pin_robot = Jq_pin.leftCols(dims_.robot.q);
+        MatXs Jv_pin_robot = Jv_pin.leftCols(dims_.robot.v);
+        MatXs dfdx_robot, dfdu_robot;
+        std::tie(dfdx_robot, dfdu_robot) =
+            robot_mapping_.getOcs2Jacobian(x_robot, Jq_pin_robot, Jv_pin_robot);
+
+        dfdx.leftCols(dims_.robot.x) = dfdx_robot;
+        dfdu.leftCols(dims_.robot.u) = dfdu_robot;
+
+        // Obstacles follow the robot columns in Pinocchio order
         for (int i = 0; i < dims_.o; ++i) {
             VecXs x_obs = state.segment(dims_.robot.x + i * 9, 9);
-            MatXs Jq_pin_obs = Jq_pin.middleCols(i * 3, 3);
-            MatXs Jv_pin_obs = Jv_pin.middleCols(i * 3, 3);
+            MatXs Jq_pin_obs = Jq_pin.middleCols(dims_.robot.q + i * 3, 3);
+            MatXs Jv_pin_obs = Jv_pin.middleCols(dims_.robot.v + i * 3, 3);
 
             MatXs dfdx_obs;
             std::tie(dfdx_obs, std::ignore) =
@@ -163,17 +176,6 @@ class SystemPinocchioMapping final
             // Obstacles have no input, so no dfdu
             dfdx.middleCols(dims_.robot.x + i * 9, 9) = dfdx_obs;
         }
-
-        VecXs x_robot = state.head(dims_.robot.x);
-        // Recall that robot q, v are after the obstacle q, v in Pinocchio
-        MatXs Jq_pin_robot = Jq_pin.rightCols(dims_.robot.q);
-        MatXs Jv_pin_robot = Jv_pin.rightCols(dims_.robot.v);
-        MatXs dfdx_robot, dfdu_robot;
-        std::tie(dfdx_robot, dfdu_robot) =
-            robot_mapping_.getOcs2Jacobian(x_robot, Jq_pin_robot, Jv_pin_robot);
-
-        dfdx.leftCols(dims_.robot.x) = dfdx_robot;
-        dfdu.leftCols(dims_.robot.u) = dfdu_robot;
 
         return {dfdx, dfdu};
     }

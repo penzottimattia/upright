@@ -239,3 +239,4 @@ objects:
     side_lengths: [0.15, 0.15, 0.275]
     com_offset: [0, 0, 0]
     mass: 0.11
+    
