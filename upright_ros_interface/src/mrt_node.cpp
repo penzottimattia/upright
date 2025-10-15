@@ -178,14 +178,36 @@ int main(int argc, char** argv) {
     const bool using_stationary =
         settings.dims.o > 0 && !settings.tracking.use_projectile;
 
-    DynamicObstacle* obstacle;
-    if (settings.dims.o > 0) {
-        obstacle = &settings.obstacle_settings.dynamic_obstacles[0];
-        const size_t num_modes = obstacle->modes.size();
-        if ((using_projectile && num_modes != 1) ||
-            (using_stationary && num_modes > 2)) {
-            throw std::runtime_error(
-                "Dynamic obstacle has wrong number of modes.");
+    // Dynamic obstacle list reference and validation. Previously this code
+    // only inspected the first obstacle which meant only the first one got
+    // integrated in time. Validate all obstacles and keep a reference to the
+    // vector so we can integrate each one below.
+    const auto& dyn_obstacles = settings.obstacle_settings.dynamic_obstacles;
+    const size_t num_obstacles = settings.dims.o;
+    if (num_obstacles > 0) {
+        if (using_projectile) {
+            // Projectile mode currently supports exactly one dynamic
+            // obstacle (the thrown object / projectile). Keep that
+            // requirement to avoid changing higher-level assumptions.
+            if (num_obstacles != 1) {
+                throw std::runtime_error(
+                    "Using projectile tracking requires exactly one dynamic obstacle.");
+            }
+            if (dyn_obstacles[0].modes.size() != 1) {
+                throw std::runtime_error(
+                    "Dynamic obstacle (projectile) has wrong number of modes.");
+            }
+        } else if (using_stationary) {
+            // For stationary obstacles, each obstacle may have either a single
+            // mode (time-invariant with constant velocity/accel) or up to two
+            // modes (piecewise constant). More than two modes is unexpected.
+            for (size_t i = 0; i < num_obstacles; ++i) {
+                const size_t nm = dyn_obstacles[i].modes.size();
+                if (nm > 2) {
+                    throw std::runtime_error(
+                        "Dynamic obstacle has wrong number of modes.");
+                }
+            }
         }
     }
 
@@ -277,54 +299,78 @@ int main(int argc, char** argv) {
         x.head(r.x) = estimate.x;
 
         // Dynamic obstacles
-        if (using_projectile && projectile.ready()) {
-            Vec3d q_obs = projectile.q();
+        if (num_obstacles > 0) {
+            if (using_projectile && projectile.ready()) {
+                // Projectile mode currently supports a single dynamic
+                // obstacle tracked by the projectile interface. We update
+                // obstacle 0's state in the full state vector.
+                Vec3d q_obs = projectile.q();
 
-            if (projectile_state == ProjectileState::Preflight &&
-                q_obs(2) > PROJECTILE_ACTIVATION_HEIGHT) {
-                // Ball is detected: avoid the ball
-                ocs2::vector_array_t new_target_states = target.stateTrajectory;
-                new_target_states[0].tail(1) << 1.0;
-                ocs2::TargetTrajectories new_target(target.timeTrajectory,
-                                                    new_target_states,
-                                                    target.inputTrajectory);
-                mrt.resetTarget(new_target);
+                if (projectile_state == ProjectileState::Preflight &&
+                    q_obs(2) > PROJECTILE_ACTIVATION_HEIGHT) {
+                    // Ball is detected: avoid the ball
+                    ocs2::vector_array_t new_target_states = target.stateTrajectory;
+                    new_target_states[0].tail(1) << 1.0;
+                    ocs2::TargetTrajectories new_target(target.timeTrajectory,
+                                                        new_target_states,
+                                                        target.inputTrajectory);
+                    mrt.resetTarget(new_target);
 
-                projectile_state = ProjectileState::Flight;
-            } else if (projectile_state == ProjectileState::Flight &&
-                       q_obs(2) < PROJECTILE_DEACTIVATION_HEIGHT) {
-                // Ball has passed: go back to the original trajectory
-                ocs2::vector_array_t new_target_states = target.stateTrajectory;
-                new_target_states[0] = original_target_state;
-                ocs2::TargetTrajectories new_target(target.timeTrajectory,
-                                                    new_target_states,
-                                                    target.inputTrajectory);
-                mrt.resetTarget(new_target);
+                    projectile_state = ProjectileState::Flight;
+                } else if (projectile_state == ProjectileState::Flight &&
+                           q_obs(2) < PROJECTILE_DEACTIVATION_HEIGHT) {
+                    // Ball has passed: go back to the original trajectory
+                    ocs2::vector_array_t new_target_states = target.stateTrajectory;
+                    new_target_states[0] = original_target_state;
+                    ocs2::TargetTrajectories new_target(target.timeTrajectory,
+                                                        new_target_states,
+                                                        target.inputTrajectory);
+                    mrt.resetTarget(new_target);
 
-                projectile_state = ProjectileState::Postflight;
+                    projectile_state = ProjectileState::Postflight;
+                }
+
+                // Always update state once we're past preflight
+                if (projectile_state != ProjectileState::Preflight) {
+                    Vec3d v_obs = projectile.v();
+                    Vec3d a_obs = dyn_obstacles[0].modes[0].acceleration;
+                    // obstacle 0 offset in the full state vector
+                    size_t obs_offset = r.x + 9 * 0;
+                    x.segment(obs_offset, 9) << q_obs, v_obs, a_obs;
+                }
+
+                // TODO we could have the MPC reset if the projectile was inside
+                // the "awareness zone" but then leaves, such that the robot is
+                // ready for the next throw
+            } else if (using_stationary) {
+                // For each dynamic obstacle, either pick between two modes
+                // based on time, or integrate the single-mode state forward
+                // in time. Each obstacle occupies 9 states in the full state
+                // vector starting at r.x + 9*i.
+                for (size_t i = 0; i < num_obstacles; ++i) {
+                    const auto& obs = dyn_obstacles[i];
+                    const size_t nm = obs.modes.size();
+                    size_t obs_offset = r.x + 9 * i;
+
+                    if (nm > 1) {
+                        // piecewise mode switch between mode 0 and mode 1
+                        if (t - t0 <= obs.modes[1].time) {
+                            x.segment(obs_offset, 9) = obs.modes[0].state();
+                        } else {
+                            x.segment(obs_offset, 9) = obs.modes[1].state();
+                        }
+                    } else if (nm == 1) {
+                        // integrate obstacle state forward in time using its
+                        // constant velocity (and keep accel constant)
+                        VecXd x_obs = obs.modes[0].state();
+                        x_obs.head(3) = x_obs.head(3) + (t - t0) * x_obs.segment(3, 3);
+                        x.segment(obs_offset, 9) = x_obs;
+                    } else {
+                        // No modes -> zero state
+                        x.segment(obs_offset, 9) = VecXd::Zero(9);
+                    }
+                }
             }
-
-            // Always update state once we're past preflight
-            if (projectile_state != ProjectileState::Preflight) {
-                Vec3d v_obs = projectile.v();
-                Vec3d a_obs = obstacle->modes[0].acceleration;
-                x.tail(9) << q_obs, v_obs, a_obs;
-            }
-
-            // TODO we could have the MPC reset if the projectile was inside
-            // the "awareness zone" but then leaves, such that the robot is
-            // ready for the next throw
-        } else if (using_stationary && obstacle->modes.size() > 1) {
-            if (t - t0 <= obstacle->modes[1].time) {
-                x.tail(9) = obstacle->modes[0].state();
-            } else {
-                x.tail(9) = obstacle->modes[1].state();
-            }
-        } else if (using_stationary && obstacle->modes.size() == 1) {
-            // integrate obstacle state forward in time
-            VecXd x_obs = obstacle->modes[0].state();
-            x_obs.head(3) = x_obs.head(3) + (t - t0) * x_obs.segment(3, 3);
-            x.tail(9) = x_obs;
         }
 
         // Compute optimal state and input using current policy

@@ -17,9 +17,42 @@ simulation:
         collides: false
         radius: &radius 0.1
         relative: false
-        modes: &dynamic_obstacle_modes
+        modes: &dynamic_1
           - time: 0
-            position: [0.5, 0.5, 0.5]
+            position: [0.3, 0.5, 0.5]
+            velocity: [0, -0.1, 0]
+            acceleration: [0, 0, 0]
+      -
+        autostart: true
+        controlled: true
+        collides: false
+        radius: *radius
+        relative: false
+        modes: &dynamic_2
+          - time: 0
+            position: [0.7, 0.5, 0.5]
+            velocity: [0, -0.1, 0]
+            acceleration: [0, 0, 0]
+      -
+        autostart: true
+        controlled: true
+        collides: false
+        radius: *radius
+        relative: false
+        modes: &dynamic_3
+          - time: 0
+            position: [0.5, 0.5, 0.3]
+            velocity: [0, -0.1, 0]
+            acceleration: [0, 0, 0]
+      -
+        autostart: true
+        controlled: true
+        collides: false
+        radius: *radius
+        relative: false
+        modes: &dynamic_4
+          - time: 0
+            position: [0.5, 0.5, 0.7]
             velocity: [0, -0.1, 0]
             acceleration: [0, 0, 0]
 
@@ -32,10 +65,33 @@ controller:
       -
         name: dynamic_1
         radius: *radius
-        modes: *dynamic_obstacle_modes
+        modes: *dynamic_1
+      -
+        name: dynamic_2
+        radius: *radius
+        modes: *dynamic_2
+      -
+        name: dynamic_3
+        radius: *radius
+        modes: *dynamic_3
+      - 
+        name: dynamic_4
+        radius: *radius
+        modes: *dynamic_4
 
     collision_pairs:
       - ["panda_link4_0", "dynamic_1"]
       - ["panda_link6_0", "dynamic_1"]
       - ["panda_link7_0", "dynamic_1"]
-  
+      
+      - ["panda_link4_0", "dynamic_2"]
+      - ["panda_link6_0", "dynamic_2"]
+      - ["panda_link7_0", "dynamic_2"]
+
+      - ["panda_link4_0", "dynamic_3"]
+      - ["panda_link6_0", "dynamic_3"]
+      - ["panda_link7_0", "dynamic_3"]
+
+      - ["panda_link4_0", "dynamic_4"]
+      - ["panda_link6_0", "dynamic_4"]
+      - ["panda_link7_0", "dynamic_4"]
