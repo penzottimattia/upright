@@ -100,7 +100,6 @@ controller:
     rate: 100 # Hz
 
   mpc:
-    time_horizon: 4.0 # was 2.0 in ur10, make it longer for smoother motion and dynamic obstacles
     debug_print: false
     cold_start: false
   
