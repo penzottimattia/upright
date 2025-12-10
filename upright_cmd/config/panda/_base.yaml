@@ -63,14 +63,14 @@ controller:
     tool_link_name: "panda_link8"
     base_type: fixed
 
-  # weights on state, input, and end effector pose (same as ur10)
+  # weights on state, input, and end effector pose (same as ur10, lower weight on joint velocities)
   weights:
     input:
       scale: 0.001 
       diag: [1rep7]
     state: 
       scale: 0.01 
-      diag: [0rep7, 10rep7, 1rep7]
+      diag: [0rep7, 1rep7, 1rep7]
     end_effector:
       scale: 1
       diag: [1, 1, 1, 1, 1, 1]
